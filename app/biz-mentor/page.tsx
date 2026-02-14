@@ -1,7 +1,14 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
+import { incrementMentorMessages, unlockAchievement, addXP } from "@/lib/progress";
+
+interface AchievementToast {
+  name: string;
+  emoji: string;
+  xp: number;
+}
 
 interface Message {
   role: "user" | "assistant";
@@ -29,6 +36,12 @@ export default function BizMentorPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const [toast, setToast] = useState<AchievementToast | null>(null);
+
+  const showToast = (t: AchievementToast) => {
+    setToast(t);
+    setTimeout(() => setToast(null), 3000);
+  };
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -42,6 +55,16 @@ export default function BizMentorPage() {
     setInput("");
     setIsLoading(true);
     setError(null);
+
+    // Track mentor messages for achievement
+    addXP(5);
+    const progress = incrementMentorMessages();
+    if (progress.mentorMessages >= 5) {
+      const result = unlockAchievement("mentors-friend");
+      if (result.unlocked && result.achievement) {
+        showToast({ name: result.achievement.name, emoji: result.achievement.emoji, xp: result.xpGained });
+      }
+    }
 
     try {
       const response = await fetch("/api/biz-mentor", {
@@ -73,6 +96,24 @@ export default function BizMentorPage() {
 
   return (
     <div className="min-h-screen px-4 sm:px-6 lg:px-8 py-8 max-w-4xl mx-auto flex flex-col">
+      {/* Achievement Toast */}
+      <AnimatePresence>
+        {toast && (
+          <motion.div
+            initial={{ opacity: 0, x: 100 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: 100 }}
+            className="achievement-toast"
+          >
+            <span className="text-2xl">{toast.emoji}</span>
+            <div>
+              <p className="font-bold text-white text-sm">{toast.name}</p>
+              <p className="text-xs text-[#FFD700]">+{toast.xp} XP</p>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       {/* Header */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}

@@ -3,12 +3,37 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { businessParts, businessFlowSteps } from "@/data/business-basics";
+import { updateTracking, unlockAchievement, addXP } from "@/lib/progress";
+
+interface AchievementToast {
+  name: string;
+  emoji: string;
+  xp: number;
+}
 
 export default function BusinessBasicsPage() {
   const [selectedPart, setSelectedPart] = useState<number | null>(null);
   const [isAdvanced, setIsAdvanced] = useState(false);
   const [activeTab, setActiveTab] = useState<"structure" | "flow">("structure");
   const [activeFlowStep, setActiveFlowStep] = useState(0);
+  const [toast, setToast] = useState<AchievementToast | null>(null);
+
+  const showToast = (t: AchievementToast) => {
+    setToast(t);
+    setTimeout(() => setToast(null), 3000);
+  };
+
+  const trackBasicView = (id: number) => {
+    setSelectedPart(id);
+    addXP(5);
+    const progress = updateTracking("viewedBasics", id);
+    if (progress.viewedBasics.length >= 13) {
+      const result = unlockAchievement("business-student");
+      if (result.unlocked && result.achievement) {
+        showToast({ name: result.achievement.name, emoji: result.achievement.emoji, xp: result.xpGained });
+      }
+    }
+  };
 
   const types = businessParts.filter((p) => p.level === "type");
   const departments = businessParts.filter((p) => p.level === "department");
@@ -18,6 +43,24 @@ export default function BusinessBasicsPage() {
 
   return (
     <div className="min-h-screen px-4 sm:px-6 lg:px-8 py-8 max-w-7xl mx-auto">
+      {/* Achievement Toast */}
+      <AnimatePresence>
+        {toast && (
+          <motion.div
+            initial={{ opacity: 0, x: 100 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: 100 }}
+            className="achievement-toast"
+          >
+            <span className="text-2xl">{toast.emoji}</span>
+            <div>
+              <p className="font-bold text-white text-sm">{toast.name}</p>
+              <p className="text-xs text-[#FFD700]">+{toast.xp} XP</p>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       {/* Header */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
@@ -84,7 +127,7 @@ export default function BusinessBasicsPage() {
                   key={type.id}
                   whileHover={{ scale: 1.03 }}
                   whileTap={{ scale: 0.97 }}
-                  onClick={() => setSelectedPart(type.id)}
+                  onClick={() => trackBasicView(type.id)}
                   className={`glass-card px-5 py-4 text-center cursor-pointer w-full ${
                     selectedPart === type.id ? "!border-[#FFD700] !bg-[rgba(255,215,0,0.1)]" : ""
                   }`}
@@ -107,7 +150,7 @@ export default function BusinessBasicsPage() {
                     key={dept.id}
                     whileHover={{ scale: 1.02 }}
                     whileTap={{ scale: 0.98 }}
-                    onClick={() => setSelectedPart(dept.id)}
+                    onClick={() => trackBasicView(dept.id)}
                     className={`glass-card p-4 text-left w-full cursor-pointer ${
                       selectedPart === dept.id ? "!border-[#FFD700] !bg-[rgba(255,215,0,0.1)]" : ""
                     }`}
@@ -132,7 +175,7 @@ export default function BusinessBasicsPage() {
                     key={concept.id}
                     whileHover={{ scale: 1.02 }}
                     whileTap={{ scale: 0.98 }}
-                    onClick={() => setSelectedPart(concept.id)}
+                    onClick={() => trackBasicView(concept.id)}
                     className={`glass-card p-4 text-left w-full cursor-pointer ${
                       selectedPart === concept.id ? "!border-[#FFD700] !bg-[rgba(255,215,0,0.1)]" : ""
                     }`}

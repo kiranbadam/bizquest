@@ -3,17 +3,76 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { careerStages, businessSpecialties } from "@/data/career-path";
+import { updateTracking, unlockAchievement, addXP, getProgress } from "@/lib/progress";
+
+interface AchievementToast {
+  name: string;
+  emoji: string;
+  xp: number;
+}
 
 export default function CareerPathPage() {
   const [selectedStage, setSelectedStage] = useState<number | null>(null);
   const [selectedSpecialty, setSelectedSpecialty] = useState<number | null>(null);
   const [activeTab, setActiveTab] = useState<"timeline" | "specialties">("timeline");
+  const [toast, setToast] = useState<AchievementToast | null>(null);
+
+  const showToast = (t: AchievementToast) => {
+    setToast(t);
+    setTimeout(() => setToast(null), 3000);
+  };
+
+  const checkCareerExplorer = () => {
+    const progress = getProgress();
+    if (progress.viewedCareerStages.length >= 7 && progress.viewedSpecialties.length >= 7) {
+      const result = unlockAchievement("career-explorer");
+      if (result.unlocked && result.achievement) {
+        showToast({ name: result.achievement.name, emoji: result.achievement.emoji, xp: result.xpGained });
+      }
+    }
+  };
+
+  const trackStage = (id: number) => {
+    setSelectedStage(id === selectedStage ? null : id);
+    if (id !== selectedStage) {
+      addXP(5);
+      updateTracking("viewedCareerStages", id);
+      checkCareerExplorer();
+    }
+  };
+
+  const trackSpecialty = (id: number) => {
+    setSelectedSpecialty(id === selectedSpecialty ? null : id);
+    if (id !== selectedSpecialty) {
+      addXP(5);
+      updateTracking("viewedSpecialties", id);
+      checkCareerExplorer();
+    }
+  };
 
   const stage = careerStages.find((s) => s.id === selectedStage);
   const specialty = businessSpecialties.find((s) => s.id === selectedSpecialty);
 
   return (
     <div className="min-h-screen px-4 sm:px-6 lg:px-8 py-8 max-w-6xl mx-auto">
+      {/* Achievement Toast */}
+      <AnimatePresence>
+        {toast && (
+          <motion.div
+            initial={{ opacity: 0, x: 100 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: 100 }}
+            className="achievement-toast"
+          >
+            <span className="text-2xl">{toast.emoji}</span>
+            <div>
+              <p className="font-bold text-white text-sm">{toast.name}</p>
+              <p className="text-xs text-[#FFD700]">+{toast.xp} XP</p>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       {/* Header */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
@@ -70,7 +129,7 @@ export default function CareerPathPage() {
                   {/* Card */}
                   <div className={`flex-1 ${index % 2 === 0 ? "sm:text-right" : "sm:text-left"}`}>
                     <button
-                      onClick={() => setSelectedStage(s.id === selectedStage ? null : s.id)}
+                      onClick={() => trackStage(s.id)}
                       className={`glass-card p-5 text-left sm:text-inherit w-full cursor-pointer transition-all ${
                         selectedStage === s.id ? "!border-[#FFD700] !bg-[rgba(255,215,0,0.1)]" : ""
                       }`}
@@ -138,7 +197,7 @@ export default function CareerPathPage() {
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: index * 0.05 }}
-                onClick={() => setSelectedSpecialty(spec.id === selectedSpecialty ? null : spec.id)}
+                onClick={() => trackSpecialty(spec.id)}
                 className={`glass-card p-5 text-left cursor-pointer transition-all ${
                   selectedSpecialty === spec.id ? "!border-[#FFD700] !bg-[rgba(255,215,0,0.1)]" : ""
                 }`}

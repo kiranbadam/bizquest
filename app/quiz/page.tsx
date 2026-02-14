@@ -3,6 +3,13 @@
 import { useState, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { quizQuestions, quizCategories, type QuizCategory } from "@/data/quiz-questions";
+import { addXP, unlockAchievement } from "@/lib/progress";
+
+interface AchievementToast {
+  name: string;
+  emoji: string;
+  xp: number;
+}
 
 type QuizMode = "quick" | "marathon";
 type QuizState = "menu" | "playing" | "results";
@@ -28,6 +35,12 @@ export default function QuizPage() {
   const [stars, setStars] = useState(0);
   const [personalBest, setPersonalBest] = useState(0);
   const [showConfetti, setShowConfetti] = useState(false);
+  const [toast, setToast] = useState<AchievementToast | null>(null);
+
+  const showToast = (t: AchievementToast) => {
+    setToast(t);
+    setTimeout(() => setToast(null), 3000);
+  };
 
   useEffect(() => {
     const saved = localStorage.getItem("bizquest-best");
@@ -55,6 +68,7 @@ export default function QuizPage() {
     if (answerIndex === questions[currentIndex].correctAnswer) {
       setScore((s) => s + 1);
     }
+    addXP(5);
   };
 
   const nextQuestion = () => {
@@ -70,6 +84,22 @@ export default function QuizPage() {
         setTimeout(() => setShowConfetti(false), 3000);
       }
 
+      // Check for quiz achievements
+      if (percentage >= 80) {
+        const result = unlockAchievement("quiz-whiz");
+        if (result.unlocked && result.achievement) {
+          showToast({ name: result.achievement.name, emoji: result.achievement.emoji, xp: result.xpGained });
+        }
+      }
+      if (percentage >= 90 && mode === "marathon") {
+        setTimeout(() => {
+          const result = unlockAchievement("quiz-master");
+          if (result.unlocked && result.achievement) {
+            showToast({ name: result.achievement.name, emoji: result.achievement.emoji, xp: result.xpGained });
+          }
+        }, 1500);
+      }
+
       setState("results");
     } else {
       setCurrentIndex((i) => i + 1);
@@ -82,6 +112,24 @@ export default function QuizPage() {
 
   return (
     <div className="min-h-screen px-4 sm:px-6 lg:px-8 py-8 max-w-4xl mx-auto">
+      {/* Achievement Toast */}
+      <AnimatePresence>
+        {toast && (
+          <motion.div
+            initial={{ opacity: 0, x: 100 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: 100 }}
+            className="achievement-toast"
+          >
+            <span className="text-2xl">{toast.emoji}</span>
+            <div>
+              <p className="font-bold text-white text-sm">{toast.name}</p>
+              <p className="text-xs text-[#FFD700]">+{toast.xp} XP</p>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       {/* Confetti */}
       {showConfetti && (
         <div className="fixed inset-0 pointer-events-none z-50">

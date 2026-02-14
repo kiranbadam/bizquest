@@ -3,6 +3,13 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { businessOperations, type OperationCategory, type Complexity } from "@/data/operations";
+import { updateTracking, unlockAchievement, addXP } from "@/lib/progress";
+
+interface AchievementToast {
+  name: string;
+  emoji: string;
+  xp: number;
+}
 
 export default function OperationsPage() {
   const [selectedOperation, setSelectedOperation] = useState<number | null>(null);
@@ -19,6 +26,26 @@ export default function OperationsPage() {
   });
 
   const selected = businessOperations.find((p) => p.id === selectedOperation);
+  const [toast, setToast] = useState<AchievementToast | null>(null);
+
+  const showToast = (t: AchievementToast) => {
+    setToast(t);
+    setTimeout(() => setToast(null), 3000);
+  };
+
+  const trackOperation = (id: number) => {
+    setSelectedOperation(id === selectedOperation ? null : id);
+    if (id !== selectedOperation) {
+      addXP(5);
+      const progress = updateTracking("viewedOperations", id);
+      if (progress.viewedOperations.length >= 20) {
+        const result = unlockAchievement("operations-pro");
+        if (result.unlocked && result.achievement) {
+          showToast({ name: result.achievement.name, emoji: result.achievement.emoji, xp: result.xpGained });
+        }
+      }
+    }
+  };
 
   const complexityColor = (c: Complexity) => {
     switch (c) {
@@ -30,6 +57,24 @@ export default function OperationsPage() {
 
   return (
     <div className="min-h-screen px-4 sm:px-6 lg:px-8 py-8 max-w-6xl mx-auto">
+      {/* Achievement Toast */}
+      <AnimatePresence>
+        {toast && (
+          <motion.div
+            initial={{ opacity: 0, x: 100 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: 100 }}
+            className="achievement-toast"
+          >
+            <span className="text-2xl">{toast.emoji}</span>
+            <div>
+              <p className="font-bold text-white text-sm">{toast.name}</p>
+              <p className="text-xs text-[#FFD700]">+{toast.xp} XP</p>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       {/* Header */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
@@ -98,7 +143,7 @@ export default function OperationsPage() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: index * 0.03 }}
-            onClick={() => setSelectedOperation(op.id === selectedOperation ? null : op.id)}
+            onClick={() => trackOperation(op.id)}
             className={`glass-card p-5 text-left cursor-pointer transition-all ${
               selectedOperation === op.id ? "!border-[#FFD700] !bg-[rgba(255,215,0,0.1)]" : ""
             }`}

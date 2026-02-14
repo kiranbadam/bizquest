@@ -1,9 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
+import { getProgress, getLevel } from "@/lib/progress";
 
 const navLinks = [
   { href: "/", label: "Home", icon: "🏠" },
@@ -14,11 +15,19 @@ const navLinks = [
   { href: "/heroes", label: "Heroes", icon: "🌟" },
   { href: "/shark-tank", label: "Shark Tank", icon: "🦈" },
   { href: "/biz-mentor", label: "Biz Mentor", icon: "🤖" },
+  { href: "/my-startup", label: "My Startup", icon: "🏪" },
 ];
 
 export default function Navigation() {
   const [isOpen, setIsOpen] = useState(false);
+  const [levelName, setLevelName] = useState("");
   const pathname = usePathname();
+
+  useEffect(() => {
+    const progress = getProgress();
+    const level = getLevel(progress.xp);
+    setLevelName(level.name);
+  }, [pathname]);
 
   return (
     <nav className="glass-nav fixed top-0 left-0 right-0 z-50">
@@ -30,6 +39,11 @@ export default function Navigation() {
             <span className="text-xl font-bold bg-gradient-to-r from-[#10B981] to-[#FFD700] bg-clip-text text-transparent">
               BizQuest
             </span>
+            {levelName && (
+              <span className="badge-secondary text-[10px] ml-1 hidden sm:inline-block">
+                {levelName}
+              </span>
+            )}
           </Link>
 
           {/* Desktop Nav */}

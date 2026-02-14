@@ -3,12 +3,58 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { businessHeroes } from "@/data/heroes";
+import { updateTracking, unlockAchievement, addXP } from "@/lib/progress";
+
+interface AchievementToast {
+  name: string;
+  emoji: string;
+  xp: number;
+}
 
 export default function HeroesPage() {
   const [expandedHero, setExpandedHero] = useState<number | null>(null);
+  const [toast, setToast] = useState<AchievementToast | null>(null);
+
+  const showToast = (t: AchievementToast) => {
+    setToast(t);
+    setTimeout(() => setToast(null), 3000);
+  };
+
+  const trackHeroExpand = (id: number) => {
+    const newId = expandedHero === id ? null : id;
+    setExpandedHero(newId);
+    if (newId !== null) {
+      addXP(10);
+      const progress = updateTracking("expandedHeroes", id);
+      if (progress.expandedHeroes.length >= 9) {
+        const result = unlockAchievement("hero-worshipper");
+        if (result.unlocked && result.achievement) {
+          showToast({ name: result.achievement.name, emoji: result.achievement.emoji, xp: result.xpGained });
+        }
+      }
+    }
+  };
 
   return (
     <div className="min-h-screen px-4 sm:px-6 lg:px-8 py-8 max-w-6xl mx-auto">
+      {/* Achievement Toast */}
+      <AnimatePresence>
+        {toast && (
+          <motion.div
+            initial={{ opacity: 0, x: 100 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: 100 }}
+            className="achievement-toast"
+          >
+            <span className="text-2xl">{toast.emoji}</span>
+            <div>
+              <p className="font-bold text-white text-sm">{toast.name}</p>
+              <p className="text-xs text-[#FFD700]">+{toast.xp} XP</p>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       {/* Header */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
@@ -37,7 +83,7 @@ export default function HeroesPage() {
               className={`glass-card p-5 cursor-pointer transition-all h-full ${
                 expandedHero === hero.id ? "!border-[#FFD700] !bg-[rgba(255,215,0,0.08)]" : ""
               }`}
-              onClick={() => setExpandedHero(expandedHero === hero.id ? null : hero.id)}
+              onClick={() => trackHeroExpand(hero.id)}
             >
               {/* Avatar */}
               <div className="flex items-center gap-3 mb-3">

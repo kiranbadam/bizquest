@@ -4,6 +4,8 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import { motion } from "framer-motion";
 import { businessFacts, businessQuotes } from "@/data/business-facts";
+import ProgressDashboard from "@/components/ProgressDashboard";
+import { unlockAchievement } from "@/lib/progress";
 
 const navCards = [
   { href: "/business-basics", emoji: "🏢", title: "Business Basics", description: "Explore business types, departments & how companies work" },
@@ -13,6 +15,7 @@ const navCards = [
   { href: "/heroes", emoji: "🌟", title: "Business Heroes", description: "Meet 9 pioneers who changed the world through business" },
   { href: "/shark-tank", emoji: "🦈", title: "Shark Tank", description: "Famous business moments & pitch evaluation challenges" },
   { href: "/biz-mentor", emoji: "🤖", title: "Biz Mentor", description: "Chat with your AI business coach" },
+  { href: "/my-startup", emoji: "🏪", title: "My Startup", description: "Build and run your own business simulator" },
 ];
 
 export default function Home() {
@@ -25,6 +28,8 @@ export default function Home() {
     );
     setDailyFact(businessFacts[dayOfYear % businessFacts.length]);
     setCurrentQuote(businessQuotes[dayOfYear % businessQuotes.length]);
+    // First Day achievement
+    unlockAchievement("first-day");
   }, []);
 
   useEffect(() => {
@@ -96,6 +101,9 @@ export default function Home() {
           </div>
         </div>
       </motion.div>
+
+      {/* Progress Dashboard */}
+      <ProgressDashboard />
 
       {/* Navigation Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 mb-12">
